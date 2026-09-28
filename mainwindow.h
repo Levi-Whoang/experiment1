@@ -22,7 +22,7 @@ private:
     void appendNumber(const QString &number);
     void inputOperator(const QString &op);
     void calculateResult();
-    double evaluateExpression(const QString &expression);
+    bool evaluateExpression(const QString &expression, double &result);
     void keyPressEvent(QKeyEvent *event);
 
     Ui::MainWindow *ui;

@@ -336,7 +336,6 @@ void MainWindow::calculateResult()
         return;
     }
 
-    // 表达式最后不能是操作符
     QChar lastChar = expression.at(expression.length() - 1);
 
     if (lastChar == '+' ||
@@ -346,11 +345,29 @@ void MainWindow::calculateResult()
         return;
     }
 
-    double result = evaluateExpression(expression);
+    double result = 0.0;
 
+    // 计算表达式
+    bool success = evaluateExpression(expression, result);
+
+    // 计算失败，例如除以 0
+    if (!success) {
+        ui->displayEdit->setText("Error");
+
+        firstNumber = 0.0;
+        currentInput.clear();
+        currentOperator.clear();
+
+        waitingForSecondOperand = false;
+        hasSecondOperand = false;
+        justCalculated = true;
+
+        return;
+    }
+
+    // 正常计算
     ui->displayEdit->setText(QString::number(result));
 
-    // 保存结果，供下一次计算
     firstNumber = result;
     currentInput = QString::number(result);
 
@@ -443,11 +460,10 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
     }
 }
 
-double MainWindow::evaluateExpression(const QString &expression)
+bool MainWindow::evaluateExpression(const QString &expression, double &result)
 {
     QString exp = expression;
 
-    // 先处理乘除
     QStringList numbers;
     QStringList operators;
 
@@ -466,16 +482,15 @@ double MainWindow::evaluateExpression(const QString &expression)
         }
     }
 
-    // 保存最后一个数字
     if (!currentNumber.isEmpty()) {
         numbers.append(currentNumber);
     }
 
     if (numbers.isEmpty()) {
-        return 0;
+        return false;
     }
 
-    // 第一步：处理 * 和 /
+    // 先计算乘法和除法
     for (int i = 0; i < operators.size(); ) {
 
         if (operators[i] == "*" || operators[i] == "/") {
@@ -483,21 +498,21 @@ double MainWindow::evaluateExpression(const QString &expression)
             double left = numbers[i].toDouble();
             double right = numbers[i + 1].toDouble();
 
-            double result;
+            // 除数为 0
+            if (operators[i] == "/" && right == 0) {
+                return false;
+            }
+
+            double temp;
 
             if (operators[i] == "*") {
-                result = left * right;
+                temp = left * right;
             }
             else {
-                if (right == 0) {
-                    return 0;
-                }
-
-                result = left / right;
+                temp = left / right;
             }
 
-            // 把两个数字合并成一个
-            numbers[i] = QString::number(result);
+            numbers[i] = QString::number(temp);
             numbers.removeAt(i + 1);
             operators.removeAt(i);
 
@@ -507,8 +522,8 @@ double MainWindow::evaluateExpression(const QString &expression)
         }
     }
 
-    // 第二步：处理 + 和 -
-    double result = numbers[0].toDouble();
+    // 再计算加法和减法
+    result = numbers[0].toDouble();
 
     for (int i = 0; i < operators.size(); ++i) {
 
@@ -522,5 +537,5 @@ double MainWindow::evaluateExpression(const QString &expression)
         }
     }
 
-    return result;
+    return true;
 }
