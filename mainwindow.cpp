@@ -166,6 +166,19 @@ MainWindow::MainWindow(QWidget *parent)
 
         QString expression = ui->displayEdit->text();
 
+        if (justCalculated) {
+            ui->displayEdit->clear();
+
+            firstNumber = 0.0;
+            currentInput.clear();
+            currentOperator.clear();
+
+            waitingForSecondOperand = false;
+            hasSecondOperand = false;
+            justCalculated = false;
+
+            return;
+        }
         if (expression.isEmpty()) {
             return;
         }
@@ -446,7 +459,22 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
         break;
 
     case Qt::Key_Delete:
-        ui->btnClear->click();
+
+        if (justCalculated) {
+            ui->displayEdit->clear();
+
+            firstNumber = 0.0;
+            currentInput.clear();
+            currentOperator.clear();
+
+            waitingForSecondOperand = false;
+            hasSecondOperand = false;
+            justCalculated = false;
+        }
+        else {
+            ui->btnClear->click();
+        }
+
         break;
 
     case Qt::Key_Enter:
