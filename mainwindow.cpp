@@ -289,16 +289,53 @@ void MainWindow::inputOperator(const QString &op)
         return;
     }
 
-    // 还没有输入第二个数字
-    // 例如：5+
+    // 把程序内部的运算符转换成面板显示的运算符
+    QString displayOp = op;
+
+    if (op == "*") {
+        displayOp = "×";
+    }
+    else if (op == "/") {
+        displayOp = "÷";
+    }
+    else if (op == "-") {
+        displayOp = "−";
+    }
+    else if (op == "+") {
+        displayOp = "+";
+    }
+
+    // 如果刚刚计算完成
+    // 例如：5+5=10，然后按+
+    // 要把10作为下一次计算的第一个数字
+    if (justCalculated) {
+
+        currentInput = QString::number(firstNumber);
+        currentOperator = op;
+
+        ui->displayEdit->setText(
+            QString::number(firstNumber) + displayOp
+            );
+
+        waitingForSecondOperand = true;
+        hasSecondOperand = false;
+        justCalculated = false;
+
+        return;
+    }
+
+    // 连续输入运算符
+    // 例如：5+ 然后按-
+    // 应该变成 5−
     if (waitingForSecondOperand && !hasSecondOperand) {
 
         currentOperator = op;
 
-        // 替换最后一个操作符
+        // 删除面板最后一个运算符
         if (!text.isEmpty()) {
             text.chop(1);
-            text += op;
+            text += displayOp;
+
             ui->displayEdit->setText(text);
         }
 
@@ -306,19 +343,17 @@ void MainWindow::inputOperator(const QString &op)
     }
 
     // 已经输入了第二个数字
-    // 例如：5+5
-    // 此时再按操作符，应该把新的操作符加到后面
+    // 例如：5+5，然后再按+
+    // 应该变成：5+5+
     if (hasSecondOperand) {
 
-        firstNumber = currentInput.toDouble();
+        currentInput = currentInput;
 
         currentOperator = op;
 
         ui->displayEdit->setText(
-            ui->displayEdit->text() + op
+            ui->displayEdit->text() + displayOp
             );
-
-        currentInput.clear();
 
         waitingForSecondOperand = true;
         hasSecondOperand = false;
@@ -326,19 +361,19 @@ void MainWindow::inputOperator(const QString &op)
         return;
     }
 
-    // 普通情况下输入第一个操作符
+    // 第一次输入运算符
     firstNumber = currentInput.toDouble();
+
     currentOperator = op;
 
     ui->displayEdit->setText(
-        ui->displayEdit->text() + op
+        ui->displayEdit->text() + displayOp
         );
 
     currentInput.clear();
 
     waitingForSecondOperand = true;
     hasSecondOperand = false;
-    justCalculated = false;
 }
 
 void MainWindow::calculateResult()
@@ -349,6 +384,12 @@ void MainWindow::calculateResult()
         return;
     }
 
+    // 面板显示符号 → 程序内部计算符号
+    expression.replace("×", "*");
+    expression.replace("÷", "/");
+    expression.replace("−", "-");
+
+    // 表达式最后不能是运算符
     QChar lastChar = expression.at(expression.length() - 1);
 
     if (lastChar == '+' ||
@@ -360,11 +401,12 @@ void MainWindow::calculateResult()
 
     double result = 0.0;
 
-    // 计算表达式
+    // 计算完整表达式
     bool success = evaluateExpression(expression, result);
 
-    // 计算失败，例如除以 0
+    // 除以0等计算错误
     if (!success) {
+
         ui->displayEdit->setText("Error");
 
         firstNumber = 0.0;
@@ -378,9 +420,12 @@ void MainWindow::calculateResult()
         return;
     }
 
-    // 正常计算
-    ui->displayEdit->setText(QString::number(result));
+    // 正常显示结果
+    ui->displayEdit->setText(
+        QString::number(result)
+        );
 
+    // 保存结果
     firstNumber = result;
     currentInput = QString::number(result);
 
@@ -388,9 +433,9 @@ void MainWindow::calculateResult()
 
     waitingForSecondOperand = false;
     hasSecondOperand = false;
+
     justCalculated = true;
 }
-
 void MainWindow::keyPressEvent(QKeyEvent *event)
 {
     switch (event->key()) {
